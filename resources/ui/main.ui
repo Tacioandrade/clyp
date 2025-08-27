@@ -93,6 +93,18 @@
                 <property name="title" translatable="yes">Toggle Search Bar</property>
               </object>
             </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="accelerator">a...z</property>
+                <property name="title" translatable="yes">Type to Search</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="accelerator">Escape</property>
+                <property name="title" translatable="yes">Hide Search Bar / Quit</property>
+              </object>
+            </child>
           </object>
         </child>
         <child>
@@ -101,13 +113,13 @@
             <child>
               <object class="GtkShortcutsShortcut">
                 <property name="accelerator">Return</property>
-                <property name="title" translatable="yes">Copy selected item</property>
+                <property name="title" translatable="yes">Copy Selected Item</property>
               </object>
             </child>
             <child>
               <object class="GtkShortcutsShortcut">
                 <property name="accelerator">Delete</property>
-                <property name="title" translatable="yes">Delete selected item</property>
+                <property name="title" translatable="yes">Delete Selected Item</property>
               </object>
             </child>
           </object>
@@ -118,13 +130,13 @@
             <child>
               <object class="GtkShortcutsShortcut">
                 <property name="accelerator">Return</property>
-                <property name="title" translatable="yes">Select first item</property>
+                <property name="title" translatable="yes">Focus First Item on the List</property>
               </object>
             </child>
             <child>
               <object class="GtkShortcutsShortcut">
                 <property name="accelerator">Escape</property>
-                <property name="title" translatable="yes">Clear search entry</property>
+                <property name="title" translatable="yes">Hide Search Bar</property>
               </object>
             </child>
           </object>

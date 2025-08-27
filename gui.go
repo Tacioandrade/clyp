@@ -237,7 +237,7 @@ func (gui *GUI) scaleImageToFit(image *gtk.Image, texture *gdk.Texture, maxSize 
 
 func (gui *GUI) setupEvents(gtkApp *gtk.Application) {
 	gui.setupAppEvents(gtkApp)
-	gui.setupClipBoardListEvents()
+	gui.setupClipBoardListEvents(gtkApp)
 	gui.setupWindowEvents()
 	gui.setupSearchBarEvents()
 }
@@ -249,7 +249,7 @@ func (gui *GUI) setupAppEvents(gtkApp *gtk.Application) {
 	})
 }
 
-func (gui *GUI) setupClipBoardListEvents() {
+func (gui *GUI) setupClipBoardListEvents(gtkApp *gtk.Application) {
 	clipboardListkeyController := gtk.NewEventControllerKey()
 
 	clipboardListkeyController.ConnectKeyPressed(func(keyval, keycode uint, state gdk.ModifierType) bool {
@@ -279,8 +279,12 @@ func (gui *GUI) setupClipBoardListEvents() {
 		}
 
 		if keyval == gdk.KEY_Escape {
-			gui.searchBarControl("hide")
-			return true
+			if gui.searchBarControl("is-active").(bool) {
+				gui.searchBarControl("hide")
+				return true
+			} else {
+				gui.shutdown(gtkApp)
+			}
 		}
 
 		return false
@@ -364,7 +368,7 @@ func (gui *GUI) isPrintableKey(keyval uint, state gdk.ModifierType) bool {
 	return true
 }
 
-func (gui *GUI) searchBarControl(action string) {
+func (gui *GUI) searchBarControl(action string) interface{} {
 	currentState := gui.searchBar.ObjectProperty("search-mode-enabled").(bool)
 	switch action {
 	case "show":
@@ -385,7 +389,10 @@ func (gui *GUI) searchBarControl(action string) {
 		} else {
 			gui.searchBarControl("show")
 		}
+	case "is-active":
+		return currentState
 	}
+	return nil
 }
 
 func (gui *GUI) setupSearchBarEvents() {
