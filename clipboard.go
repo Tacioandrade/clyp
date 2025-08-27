@@ -13,7 +13,7 @@ import (
 )
 
 type Clipboard struct {
-	clipboard     gdk.Clipboard
+	clipboard     *gdk.Clipboard
 	itemCount     int
 	recentContent string
 }
@@ -64,10 +64,18 @@ func (clipboard *Clipboard) count() {
 }
 
 func (clipboard *Clipboard) watch() {
-	clipboard.clipboard = *gdk.DisplayGetDefault().Clipboard()
+	display := gdk.DisplayGetDefault()
+	if display == nil {
+		panic("Failed to get default display.")
+	}
+	clipboard.clipboard = display.Clipboard()
+	if clipboard.clipboard == nil {
+		panic("Failed to get clipboard.")
+	}
+	log.Println("Clyp watcher started.")
 	clipboard.clipboard.ConnectChanged(func() {
 		formats := clipboard.clipboard.Formats().String()
-		if formats == "" {
+		if strings.TrimSpace(formats) == "" {
 			return
 		}
 		if strings.Contains(formats, "text/") {
@@ -84,6 +92,7 @@ func (clipboard *Clipboard) readTextContent() {
 	clipboard.clipboard.ReadTextAsync(context.Background(), func(result gio.AsyncResulter) {
 		text, err := clipboard.clipboard.ReadTextFinish(result)
 		if err != nil {
+			log.Printf("Failed to read text from clipboard: %v", err)
 			return
 		}
 		text = strings.TrimSpace(text)
@@ -97,6 +106,7 @@ func (clipboard *Clipboard) readImageContent() {
 	clipboard.clipboard.ReadTextureAsync(context.Background(), func(result gio.AsyncResulter) {
 		texture, err := clipboard.clipboard.ReadTextureFinish(result)
 		if err != nil || texture == nil {
+			log.Printf("Failed to read texture from clipboard: %v", err)
 			return
 		}
 
@@ -141,7 +151,11 @@ func (clipboard *Clipboard) textureToBase64(texture gdk.Texturer) string {
 
 func (clipboard *Clipboard) updateRecentContentFromDatabase() {
 	contentRow := database.db.QueryRow("SELECT content FROM clipboard ORDER BY id DESC LIMIT 1")
-	contentRow.Scan(&clipboard.recentContent)
+	err := contentRow.Scan(&clipboard.recentContent)
+	if err != nil {
+		log.Printf("Failed to get recent content from database: %v", err)
+		return
+	}
 }
 
 func (clipboard *Clipboard) saveToDatabase(content string, itemType byte) {
@@ -154,10 +168,13 @@ func (clipboard *Clipboard) saveToDatabase(content string, itemType byte) {
 	}
 
 	_, err := database.db.Exec("INSERT INTO clipboard (content, type) VALUES (?, ?)", content, itemType)
-	if err == nil {
-		clipboard.recentContent = content
-		ipc.notify()
+	if err != nil {
+		log.Printf("Failed to save to database: %v", err)
+		return
 	}
+
+	clipboard.recentContent = content
+	ipc.notify()
 }
 
 func (clipboard *Clipboard) copy(id string) {

@@ -42,9 +42,9 @@ func (gui *GUI) init() {
 		if os.Getenv("RUN_ENV") == "dev" {
 			cmd = "./clyp"
 		}
-		watcher := exec.Command(cmd, "watch")
+		watcher := exec.Command(cmd, " --watch")
 		if err := watcher.Start(); err != nil {
-			log.Println(err.Error())
+			log.Printf("Failed to start watcher: %v", err)
 		}
 	})
 
@@ -54,10 +54,6 @@ func (gui *GUI) init() {
 }
 
 func (gui *GUI) activate(gtkApp *gtk.Application) {
-	app.setupDataDir()
-	if err := database.init(); err != nil {
-		panic(err.Error())
-	}
 	builder := gtk.NewBuilderFromString(uiXML)
 	gui.window = builder.GetObject("gtk_window").Cast().(*gtk.ApplicationWindow)
 	gui.clipboardItemsList = builder.GetObject("clipboard_list").Cast().(*gtk.ListBox)
@@ -76,13 +72,13 @@ func (gui *GUI) activate(gtkApp *gtk.Application) {
 	gui.setupStyleSupport()
 	gui.window.SetApplication(gtkApp)
 	gui.window.SetVisible(true)
-	gui.window.SetIconName("bio.murat.clyp")
+	gui.window.SetIconName(app.id)
 }
 
 func (gui *GUI) shutdown(gtkApp *gtk.Application) {
 	if database.db != nil {
 		database.vacuum()
-		database.db.Close()
+		database.close()
 	}
 	gtkApp.Quit()
 }
@@ -481,10 +477,10 @@ func (gui *GUI) setupAboutAction(gtkApp *gtk.Application) {
 func (gui *GUI) showAboutDialog(parent *gtk.ApplicationWindow) {
 	aboutDialog := gtk.NewAboutDialog()
 	aboutDialog.SetTransientFor(&parent.Window)
-	aboutDialog.SetLogoIconName("bio.murat.clyp")
+	aboutDialog.SetLogoIconName(app.id)
 	aboutDialog.SetModal(true)
-	aboutDialog.SetVersion("0.9.5")
-	aboutDialog.SetProgramName("Clyp")
+	aboutDialog.SetVersion(app.version)
+	aboutDialog.SetProgramName(app.name)
 	aboutDialog.SetComments("Clipboard manager.")
 	aboutDialog.SetWebsite("https://github.com/murat-cileli/clyp")
 	aboutDialog.SetWebsiteLabel("https://github.com/murat-cileli/clyp")

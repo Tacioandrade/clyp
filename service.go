@@ -11,9 +11,12 @@ import (
 type Service struct{}
 
 func (service *Service) init() {
-	gtkServiceApp := gtk.NewApplication("bio.murat.clyp-watcher", gio.ApplicationDefaultFlags)
+	gtkServiceApp := gtk.NewApplication(app.id+"-watcher", gio.ApplicationDefaultFlags)
 	gtkServiceApp.ConnectActivate(func() { service.activate(gtkServiceApp) })
-
+	gtkServiceApp.ConnectShutdown(func() {
+		database.vacuum()
+		database.close()
+	})
 	if code := gtkServiceApp.Run(nil); code > 0 {
 		os.Exit(code)
 	}

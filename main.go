@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"strings"
 )
 
 var (
@@ -13,19 +14,16 @@ var (
 )
 
 func main() {
-	app.id = "bio.murat.clyp"
-	app.name = "Clyp"
-
-	app.setupDataDir()
-	database.init()
-
-	switch len(os.Args) {
-	case 1:
+	app.init()
+	osArgs := strings.Join(os.Args, " ")
+	switch {
+	// No need to use "flag" package. It's overkill.
+	case strings.Contains(osArgs, " --watch"):
+		service.init()
+	// Deprecated. Will be removed in future releases.
+	case strings.Contains(osArgs, " watch"):
+		service.init()
+	default:
 		gui.init()
-	case 2:
-		switch os.Args[1] {
-		case "watch":
-			service.init()
-		}
 	}
 }

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net"
 	"os"
@@ -14,6 +13,7 @@ type IPC struct{}
 func (ipc *IPC) notify() {
 	conn, err := net.Dial("unix", "/tmp/clyp.sock")
 	if err != nil {
+		log.Printf("Failed to connect to socket: %v", err)
 		return
 	}
 	defer conn.Close()
@@ -28,13 +28,14 @@ func (ipc *IPC) listen() {
 	os.Remove("/tmp/clyp.sock")
 	listener, err := net.Listen("unix", "/tmp/clyp.sock")
 	if err != nil {
-		fmt.Printf("%v", err)
+		log.Printf("Failed to listen on socket: %v", err)
 		return
 	}
 	defer listener.Close()
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
+			log.Printf("Failed to accept connection: %v", err)
 			continue
 		}
 		b := make([]byte, 1)

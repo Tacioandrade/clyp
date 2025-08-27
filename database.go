@@ -57,3 +57,9 @@ CREATE UNIQUE INDEX clipboard_content_IDX ON clipboard (content,date_time);
 func (database *Database) vacuum() {
 	database.db.Exec(`VACUUM;`)
 }
+
+func (database *Database) close() {
+	if database.db != nil {
+		database.db.Close()
+	}
+}
