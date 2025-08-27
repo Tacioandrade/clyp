@@ -43,9 +43,11 @@ Or launch from your application menu.
 | Key | Action |
 |-----|--------|
 | `Ctrl+F` | Toggle search |
-| `Enter` | Copy selected item to clipboard |
+| `a` - `z` | Type to search |
+| `Enter` | (On search bar) Focus first item on the list |
+| `Enter` or `Double Click` | (On the list) Copy selected item to clipboard |
 | `Delete` | Remove selected item |
-| `Escape` | Clear search / Close search bar |
+| `Escape` | Hide search bar / Close window |
 | `↑/↓` | Navigate through clipboard history |
 
 ### Basic Operations
