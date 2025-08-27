@@ -260,7 +260,7 @@ func (gui *GUI) setupClipBoardListEvents() {
 		if keyval == gdk.KEY_Return || keyval == gdk.KEY_KP_Enter {
 			selectedRow := gui.clipboardItemsList.SelectedRow()
 			if selectedRow != nil {
-				gui.hideSearchBar()
+				gui.searchBarControl("hide")
 				clipboard.copy(selectedRow.Name())
 				glib.IdleAdd(func() {
 					gui.updateClipboardRows(true)
@@ -283,7 +283,7 @@ func (gui *GUI) setupClipBoardListEvents() {
 		}
 
 		if keyval == gdk.KEY_Escape {
-			gui.hideSearchBar()
+			gui.searchBarControl("hide")
 			return true
 		}
 
@@ -296,7 +296,7 @@ func (gui *GUI) setupClipBoardListEvents() {
 		if nPress == 2 {
 			selectedRow := gui.clipboardItemsList.SelectedRow()
 			if selectedRow != nil {
-				gui.hideSearchBar()
+				gui.searchBarControl("hide")
 				clipboard.copy(selectedRow.Name())
 				glib.IdleAdd(func() {
 					gui.updateClipboardRows(true)
@@ -317,12 +317,12 @@ func (gui *GUI) setupWindowEvents() {
 	windowKeyController.ConnectKeyPressed(func(keyval, keycode uint, state gdk.ModifierType) bool {
 		// Show search bar when Ctrl+F is pressed
 		if state&gdk.ControlMask != 0 && keyval == gdk.KEY_f {
-			gui.toggleSearchBar()
+			gui.searchBarControl("toggle")
 			return true
 		}
 		// Type to search
 		if gui.isPrintableKey(keyval, state) {
-			gui.showSearchBar()
+			gui.searchBarControl("show")
 			glib.IdleAdd(func() {
 				gui.searchEntry.GrabFocus()
 				currentText := gui.searchEntry.Text()
@@ -368,25 +368,27 @@ func (gui *GUI) isPrintableKey(keyval uint, state gdk.ModifierType) bool {
 	return true
 }
 
-func (gui *GUI) toggleSearchBar() {
+func (gui *GUI) searchBarControl(action string) {
 	currentState := gui.searchBar.ObjectProperty("search-mode-enabled").(bool)
-	gui.searchToggleButton.SetActive(!currentState)
-	gui.searchBar.SetObjectProperty("search-mode-enabled", !currentState)
-}
-
-func (gui *GUI) hideSearchBar() {
-	if gui.searchBar.ObjectProperty("search-mode-enabled").(bool) {
-		gui.searchToggleButton.SetActive(false)
-		gui.searchBar.SetObjectProperty("search-mode-enabled", false)
-		gui.focusFirstClipboardListItem()
-	}
-}
-
-func (gui *GUI) showSearchBar() {
-	if !gui.searchBar.ObjectProperty("search-mode-enabled").(bool) {
-		gui.searchToggleButton.SetActive(true)
-		gui.searchBar.SetObjectProperty("search-mode-enabled", true)
-		gui.searchEntry.GrabFocus()
+	switch action {
+	case "show":
+		if !currentState {
+			gui.searchToggleButton.SetActive(true)
+			gui.searchBar.SetObjectProperty("search-mode-enabled", true)
+			gui.searchEntry.GrabFocus()
+		}
+	case "hide":
+		if currentState {
+			gui.searchToggleButton.SetActive(false)
+			gui.searchBar.SetObjectProperty("search-mode-enabled", false)
+			gui.focusFirstClipboardListItem()
+		}
+	case "toggle":
+		if currentState {
+			gui.searchBarControl("hide")
+		} else {
+			gui.searchBarControl("show")
+		}
 	}
 }
 
@@ -398,7 +400,7 @@ func (gui *GUI) setupSearchBarEvents() {
 				gui.updateClipboardRows(true)
 				gui.focusFirstClipboardListItem()
 			})
-			gui.hideSearchBar()
+			gui.searchBarControl("hide")
 			return
 		}
 		database.searchFilter = gui.searchEntry.Text()
@@ -408,7 +410,7 @@ func (gui *GUI) setupSearchBarEvents() {
 	})
 	gui.searchBar.ConnectEntry(gui.searchEntry)
 	gui.searchToggleButton.ConnectToggled(func() {
-		gui.toggleSearchBar()
+		gui.searchBarControl("toggle")
 	})
 	gui.searchEntry.ConnectActivate(func() {
 		gui.focusFirstClipboardListItem()
@@ -416,7 +418,7 @@ func (gui *GUI) setupSearchBarEvents() {
 	searchEntryKeyController := gtk.NewEventControllerKey()
 	searchEntryKeyController.ConnectKeyPressed(func(keyval, keycode uint, state gdk.ModifierType) bool {
 		if keyval == gdk.KEY_Escape {
-			gui.hideSearchBar()
+			gui.searchBarControl("hide")
 			return true
 		}
 		if keyval == gdk.KEY_Down || keyval == gdk.KEY_KP_Down || keyval == gdk.KEY_Tab || keyval == gdk.KEY_KP_Tab {
