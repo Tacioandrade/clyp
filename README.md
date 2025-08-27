@@ -11,20 +11,20 @@ Modern, fast, simple clipboard manager for Linux.
 - **Keyboard centric** - Navigate, search, copy and delete items with keyboard.
 - **High performance** - Optimized SQLite backend tested with 10,000+ records.
 - **Supports text and image content** (up to 3 images) with image previews.
-- **Full Wayland support** - Works natively on both Wayland and X11.
+- **Wayland native GUI** (watcher module is X11) - Works on both Wayland and X11.
 
 ## Installation
 
 ### Debian 13 / Ubuntu 24.04 and Later
-- Download [DEB Package](https://github.com/murat-cileli/clyp/releases/download/0.9.5/clyp_0.9.5_amd64.deb)
-- `apt install ./clyp_0.9.5_amd64.deb`
+- Download [DEB Package](https://github.com/murat-cileli/clyp/releases/download/0.9.6/clyp_0.9.6_amd64.deb)
+- `apt install ./clyp_0.9.6_amd64.deb`
 
 > [!IMPORTANT]
 > Depends on `libgtk-4-bin`
 
 ### Arch Linux / Manjaro
-- Download [Arch Linux Package](https://github.com/murat-cileli/clyp/releases/download/0.9.5/clyp-0.9.5-1-x86_64.pkg.tar.zst)  
-- `pacman -U clyp-0.9.5-1-x86_64.pkg.tar.zst`
+- Download [Arch Linux Package](https://github.com/murat-cileli/clyp/releases/download/0.9.6/clyp-0.9.6-1-x86_64.pkg.tar.zst)  
+- `pacman -U clyp-0.9.6-1-x86_64.pkg.tar.zst`
 
 > [!IMPORTANT]
 > Depends on `gtk4`

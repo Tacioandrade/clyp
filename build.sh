@@ -14,7 +14,7 @@ case $1 in
   run-watcher)
     go build -mod=vendor -v -o dist/clyp_linux_amd64_v1/clyp . \
       && cd dist/clyp_linux_amd64_v1/ \
-      && ./clyp --watch
+      && GDK_BACKEND=x11 ./clyp --watch
     ;;
   package-snapshot)
     goreleaser release --snapshot --clean \

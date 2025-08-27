@@ -43,6 +43,8 @@ func (gui *GUI) init() {
 			cmd = "./clyp"
 		}
 		watcher := exec.Command(cmd, " --watch")
+		watcher.Env = os.Environ()
+		watcher.Env = append(watcher.Env, "GDK_BACKEND=x11")
 		if err := watcher.Start(); err != nil {
 			log.Printf("Failed to start watcher: %v", err)
 		}
@@ -73,6 +75,10 @@ func (gui *GUI) activate(gtkApp *gtk.Application) {
 	gui.window.SetApplication(gtkApp)
 	gui.window.SetVisible(true)
 	gui.window.SetIconName(app.id)
+	// Always update startup entry.
+	if gui.startupEntryControl("check") {
+		gui.startupEntryControl("add")
+	}
 }
 
 func (gui *GUI) shutdown(gtkApp *gtk.Application) {
