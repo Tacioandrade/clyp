@@ -492,7 +492,7 @@ func (gui *GUI) showAboutDialog(parent *gtk.ApplicationWindow) {
 }
 
 func (gui *GUI) setupActionRunOnStartup(gtkApp *gtk.Application) {
-	hasStartupEntry := gui.hasStartupEntry()
+	hasStartupEntry := gui.startupEntryControl("check")
 	initialState := glib.NewVariantBoolean(hasStartupEntry)
 	actionRunOnStartup := gio.NewSimpleActionStateful("run_on_startup", nil, initialState)
 	actionRunOnStartup.ConnectActivate(func(parameter *glib.Variant) {
@@ -514,50 +514,28 @@ func (gui *GUI) handleRunOnStartup(action *gio.SimpleAction) {
 	newState := glib.NewVariantBoolean(!currentState)
 	action.SetState(newState)
 	if newState.Boolean() {
-		gui.addStartupEntry()
+		gui.startupEntryControl("add")
 	} else {
-		gui.removeStartupEntry()
+		gui.startupEntryControl("remove")
 	}
 }
 
-func (gui *GUI) addStartupEntry() {
-	userHomeDir, err := os.UserHomeDir()
-	if err != nil {
-		log.Printf("Failed to get user home directory: %v", err)
-		return
-	}
-	autoStartdesktopFile := userHomeDir + "/.config/autostart/clyp-watcher.desktop"
-	err = os.WriteFile(autoStartdesktopFile, []byte(watcherFile), 0644)
-	if err != nil {
-		log.Printf("Failed to write desktop file: %v", err)
-	}
-}
-
-func (gui *GUI) removeStartupEntry() {
-	userHomeDir, err := os.UserHomeDir()
-	if err != nil {
-		log.Printf("Failed to get user home directory: %v", err)
-		return
-	}
-	autoStartdesktopFile := userHomeDir + "/.config/autostart/clyp-watcher.desktop"
-	err = os.Remove(autoStartdesktopFile)
-	if err != nil {
-		log.Printf("Failed to remove desktop file: %v", err)
-	}
-}
-
-func (gui *GUI) hasStartupEntry() bool {
+func (gui *GUI) startupEntryControl(action string) bool {
 	userHomeDir, err := os.UserHomeDir()
 	if err != nil {
 		log.Printf("Failed to get user home directory: %v", err)
 		return false
 	}
 	autoStartdesktopFile := userHomeDir + "/.config/autostart/clyp-watcher.desktop"
-	_, err = os.Stat(autoStartdesktopFile)
-	if err == nil {
-		return true
+	switch action {
+	case "add":
+		err = os.WriteFile(autoStartdesktopFile, []byte(watcherFile), 0644)
+	case "remove":
+		err = os.Remove(autoStartdesktopFile)
+	case "check":
+		_, err = os.Stat(autoStartdesktopFile)
 	}
-	return false
+	return err == nil
 }
 
 func (gui *GUI) showAddToStartupToast() {
