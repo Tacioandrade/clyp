@@ -260,7 +260,7 @@ func (gui *GUI) setupClipBoardListEvents() {
 		if keyval == gdk.KEY_Return || keyval == gdk.KEY_KP_Enter {
 			selectedRow := gui.clipboardItemsList.SelectedRow()
 			if selectedRow != nil {
-				gui.closeSearchBar()
+				gui.hideSearchBar()
 				clipboard.copy(selectedRow.Name())
 				glib.IdleAdd(func() {
 					gui.updateClipboardRows(true)
@@ -283,7 +283,7 @@ func (gui *GUI) setupClipBoardListEvents() {
 		}
 
 		if keyval == gdk.KEY_Escape {
-			gui.closeSearchBar()
+			gui.hideSearchBar()
 			return true
 		}
 
@@ -296,7 +296,7 @@ func (gui *GUI) setupClipBoardListEvents() {
 		if nPress == 2 {
 			selectedRow := gui.clipboardItemsList.SelectedRow()
 			if selectedRow != nil {
-				gui.closeSearchBar()
+				gui.hideSearchBar()
 				clipboard.copy(selectedRow.Name())
 				glib.IdleAdd(func() {
 					gui.updateClipboardRows(true)
@@ -315,14 +315,57 @@ func (gui *GUI) setupWindowEvents() {
 	windowKeyController := gtk.NewEventControllerKey()
 
 	windowKeyController.ConnectKeyPressed(func(keyval, keycode uint, state gdk.ModifierType) bool {
+		// Show search bar when Ctrl+F is pressed
 		if state&gdk.ControlMask != 0 && keyval == gdk.KEY_f {
 			gui.toggleSearchBar()
 			return true
 		}
-		return true
+		// Type to search
+		if gui.isPrintableKey(keyval, state) {
+			gui.showSearchBar()
+			glib.IdleAdd(func() {
+				gui.searchEntry.GrabFocus()
+				currentText := gui.searchEntry.Text()
+				newText := currentText + string(rune(keyval))
+				gui.searchEntry.SetText(newText)
+				gui.searchEntry.SetPosition(-1)
+			})
+			return true
+		}
+		return false
 	})
 
 	gui.window.AddController(windowKeyController)
+}
+
+func (gui *GUI) isPrintableKey(keyval uint, state gdk.ModifierType) bool {
+	// Ignore modifier keys
+	if state&(gdk.ControlMask|gdk.AltMask|gdk.SuperMask) != 0 {
+		return false
+	}
+	// Ignore special keys
+	switch keyval {
+	case gdk.KEY_Return, gdk.KEY_KP_Enter,
+		gdk.KEY_Tab, gdk.KEY_KP_Tab,
+		gdk.KEY_Escape,
+		gdk.KEY_BackSpace,
+		gdk.KEY_Delete,
+		gdk.KEY_Insert,
+		gdk.KEY_Home, gdk.KEY_End,
+		gdk.KEY_Page_Up, gdk.KEY_Page_Down,
+		gdk.KEY_Up, gdk.KEY_Down, gdk.KEY_Left, gdk.KEY_Right,
+		gdk.KEY_KP_Up, gdk.KEY_KP_Down, gdk.KEY_KP_Left, gdk.KEY_KP_Right,
+		gdk.KEY_F1, gdk.KEY_F2, gdk.KEY_F3, gdk.KEY_F4, gdk.KEY_F5, gdk.KEY_F6,
+		gdk.KEY_F7, gdk.KEY_F8, gdk.KEY_F9, gdk.KEY_F10, gdk.KEY_F11, gdk.KEY_F12,
+		gdk.KEY_Shift_L, gdk.KEY_Shift_R,
+		gdk.KEY_Control_L, gdk.KEY_Control_R,
+		gdk.KEY_Alt_L, gdk.KEY_Alt_R,
+		gdk.KEY_Super_L, gdk.KEY_Super_R,
+		gdk.KEY_Menu, gdk.KEY_Print, gdk.KEY_Scroll_Lock, gdk.KEY_Pause,
+		gdk.KEY_Caps_Lock, gdk.KEY_Num_Lock:
+		return false
+	}
+	return true
 }
 
 func (gui *GUI) toggleSearchBar() {
@@ -331,11 +374,19 @@ func (gui *GUI) toggleSearchBar() {
 	gui.searchBar.SetObjectProperty("search-mode-enabled", !currentState)
 }
 
-func (gui *GUI) closeSearchBar() {
+func (gui *GUI) hideSearchBar() {
 	if gui.searchBar.ObjectProperty("search-mode-enabled").(bool) {
 		gui.searchToggleButton.SetActive(false)
 		gui.searchBar.SetObjectProperty("search-mode-enabled", false)
 		gui.focusFirstClipboardListItem()
+	}
+}
+
+func (gui *GUI) showSearchBar() {
+	if !gui.searchBar.ObjectProperty("search-mode-enabled").(bool) {
+		gui.searchToggleButton.SetActive(true)
+		gui.searchBar.SetObjectProperty("search-mode-enabled", true)
+		gui.searchEntry.GrabFocus()
 	}
 }
 
@@ -347,7 +398,7 @@ func (gui *GUI) setupSearchBarEvents() {
 				gui.updateClipboardRows(true)
 				gui.focusFirstClipboardListItem()
 			})
-			gui.closeSearchBar()
+			gui.hideSearchBar()
 			return
 		}
 		database.searchFilter = gui.searchEntry.Text()
@@ -365,7 +416,7 @@ func (gui *GUI) setupSearchBarEvents() {
 	searchEntryKeyController := gtk.NewEventControllerKey()
 	searchEntryKeyController.ConnectKeyPressed(func(keyval, keycode uint, state gdk.ModifierType) bool {
 		if keyval == gdk.KEY_Escape {
-			gui.closeSearchBar()
+			gui.hideSearchBar()
 			return true
 		}
 		if keyval == gdk.KEY_Down || keyval == gdk.KEY_KP_Down || keyval == gdk.KEY_Tab || keyval == gdk.KEY_KP_Tab {
