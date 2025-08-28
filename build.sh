@@ -33,6 +33,9 @@ case $1 in
       && git tag $3 \
       && git push \
       && git push --tags \
+      && goreleaser build --clean \
+      && nfpm pkg --packager deb --target dist/ \
+      && nfpm pkg --packager archlinux --target dist/ \
       && GITHUB_TOKEN=$4 goreleaser release --clean
     ;;
 esac

@@ -19,3 +19,8 @@ archives:
       {{- title .Os }}-
       {{- if eq .Arch "amd64" }}x86_64
       {{- else }}{{ .Arch }}{{ end }}
+release:
+  include_meta: false
+  extra_files:
+    - glob: ./dist/*.deb
+    - glob: ./dist/*.pkg.tar.zst
