@@ -55,8 +55,9 @@ Or launch from your application menu.
 1. **Automatic Clipboard Monitoring**: Clyp automatically captures text and images copied to your clipboard
 2. **Browse History**: Use the main window to browse through your clipboard history
 3. **Search**: Press `Ctrl+F` to search through your clipboard content
-4. **Quick Copy**: Select any item and press `Enter` to copy it back to your clipboard
-5. **Delete Items**: Select unwanted items and press `Delete` to remove them
+4. **Type to Search**: Start typing to search history instantly
+5. **Quick Copy**: Select any item and press `Enter` to copy it back to your clipboard
+6. **Delete Items**: Select unwanted items and press `Delete` to remove them
 
 ## Technical Details
 
