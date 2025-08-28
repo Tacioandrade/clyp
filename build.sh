@@ -21,4 +21,18 @@ case $1 in
       && nfpm pkg --packager deb --target dist/ \
       && nfpm pkg --packager archlinux --target dist/
     ;;
+  release)
+    # $2 old version
+    # $3 new version
+    # #4 environment variable
+    sed -i "s/$2/$3/g" README.md \
+      && sed -i "s/$2/$3/g" app.go \
+      && sed -i "s/$2/$3/g" nfpm.yaml \
+      && git add . \
+      && git commit -m "Bump version to $3" \
+      && git tag $3 \
+      && git push \
+      && git push --tags \
+      && GITHUB_TOKEN=$4 goreleaser release --clean
+    ;;
 esac
