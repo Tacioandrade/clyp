@@ -8,7 +8,7 @@ import (
 var (
 	app      Application
 	gui      GUI
-	service  Service
+	watcher  Watcher
 	database Database
 	ipc      IPC
 )
@@ -19,10 +19,10 @@ func main() {
 	switch {
 	// No need to use "flag" package. It's overkill.
 	case strings.Contains(osArgs, " --watch"):
-		service.init()
+		watcher.init()
 	// Deprecated. Will be removed in future releases.
 	case strings.Contains(osArgs, " watch"):
-		service.init()
+		watcher.init()
 	default:
 		gui.init()
 	}
