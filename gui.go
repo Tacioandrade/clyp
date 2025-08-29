@@ -36,19 +36,6 @@ func (gui *GUI) init() {
 	gtkApp := gtk.NewApplication(app.id, gio.ApplicationDefaultFlags)
 	gtkApp.ConnectActivate(func() { gui.activate(gtkApp) })
 	gtkApp.ConnectShutdown(func() { gui.shutdown(gtkApp) })
-	gtkApp.ConnectAfter("activate", func() {
-		go ipc.listen()
-		cmd := "clyp"
-		if os.Getenv("RUN_ENV") == "dev" {
-			cmd = "./clyp"
-		}
-		watcher := exec.Command(cmd, " --watch")
-		watcher.Env = os.Environ()
-		watcher.Env = append(watcher.Env, "GDK_BACKEND=x11")
-		if err := watcher.Start(); err != nil {
-			log.Printf("Failed to start watcher: %v", err)
-		}
-	})
 
 	if code := gtkApp.Run(os.Args); code > 0 {
 		os.Exit(code)
@@ -62,23 +49,23 @@ func (gui *GUI) activate(gtkApp *gtk.Application) {
 	gui.searchEntry = builder.GetObject("search_entry").Cast().(*gtk.SearchEntry)
 	gui.searchBar = builder.GetObject("search_bar").Cast().(*gtk.SearchBar)
 	gui.searchToggleButton = builder.GetObject("search_toggle_button").Cast().(*gtk.ToggleButton)
+	gui.window.SetApplication(gtkApp)
 	gui.setupCSS()
-	glib.IdleAdd(func() {
-		gui.updateClipboardRows(true)
-		gui.focusClipboardItemByIndex(0)
-	})
+	gui.updateClipboardRows(true)
+	gui.focusClipboardItemByIndex(0)
+	gui.window.SetVisible(true)
 	gui.setupEvents(gtkApp)
 	gui.setupShortcutsAction(gtkApp)
 	gui.setupAboutAction(gtkApp)
 	gui.setupActionRunOnStartup(gtkApp)
 	gui.setupStyleSupport()
-	gui.window.SetApplication(gtkApp)
-	gui.window.SetVisible(true)
 	gui.window.SetIconName(app.id)
 	// Always update startup entry.
 	if gui.startupEntryControl("check") {
 		gui.startupEntryControl("add")
 	}
+	gui.startWatcher()
+	go ipc.listen()
 }
 
 func (gui *GUI) shutdown(gtkApp *gtk.Application) {
@@ -87,6 +74,19 @@ func (gui *GUI) shutdown(gtkApp *gtk.Application) {
 		database.close()
 	}
 	gtkApp.Quit()
+}
+
+func (gui *GUI) startWatcher() {
+	cmd := "clyp"
+	if os.Getenv("RUN_ENV") == "dev" {
+		cmd = "./clyp"
+	}
+	watcher := exec.Command(cmd, " --watch")
+	watcher.Env = os.Environ()
+	watcher.Env = append(watcher.Env, "GDK_BACKEND=x11")
+	if err := watcher.Start(); err != nil {
+		log.Printf("Failed to start watcher: %v", err)
+	}
 }
 
 func (gui *GUI) setupCSS() {
@@ -264,10 +264,8 @@ func (gui *GUI) setupClipBoardListEvents(gtkApp *gtk.Application) {
 			if selectedRow != nil {
 				gui.searchBarControl("hide")
 				clipboard.copy(selectedRow.Name())
-				glib.IdleAdd(func() {
-					gui.updateClipboardRows(true)
-					gui.focusClipboardItemByIndex(0)
-				})
+				gui.updateClipboardRows(true)
+				gui.focusClipboardItemByIndex(0)
 				return true
 			}
 		}
@@ -277,10 +275,8 @@ func (gui *GUI) setupClipBoardListEvents(gtkApp *gtk.Application) {
 			selectedRowIndex := selectedRow.Index()
 			if selectedRow != nil {
 				clipboard.removeFromDatabase(selectedRow.Name())
-				glib.IdleAdd(func() {
-					gui.updateClipboardRows(true)
-					gui.focusClipboardItemByIndex(selectedRowIndex)
-				})
+				gui.updateClipboardRows(true)
+				gui.focusClipboardItemByIndex(selectedRowIndex)
 				return true
 			}
 		}
@@ -305,10 +301,8 @@ func (gui *GUI) setupClipBoardListEvents(gtkApp *gtk.Application) {
 			if selectedRow != nil {
 				gui.searchBarControl("hide")
 				clipboard.copy(selectedRow.Name())
-				glib.IdleAdd(func() {
-					gui.updateClipboardRows(true)
-					gui.focusClipboardItemByIndex(0)
-				})
+				gui.updateClipboardRows(true)
+				gui.focusClipboardItemByIndex(0)
 			}
 		}
 	})
@@ -330,13 +324,11 @@ func (gui *GUI) setupWindowEvents() {
 		// Type to search
 		if gui.isPrintableKey(keyval, state) {
 			gui.searchBarControl("show")
-			glib.IdleAdd(func() {
-				gui.searchEntry.GrabFocus()
-				currentText := gui.searchEntry.Text()
-				newText := currentText + string(rune(keyval))
-				gui.searchEntry.SetText(newText)
-				gui.searchEntry.SetPosition(-1)
-			})
+			gui.searchEntry.GrabFocus()
+			currentText := gui.searchEntry.Text()
+			newText := currentText + string(rune(keyval))
+			gui.searchEntry.SetText(newText)
+			gui.searchEntry.SetPosition(-1)
 			return true
 		}
 		return false
@@ -406,17 +398,13 @@ func (gui *GUI) setupSearchBarEvents() {
 	gui.searchEntry.ConnectSearchChanged(func() {
 		if gui.searchEntry.Text() == "" {
 			database.searchFilter = ""
-			glib.IdleAdd(func() {
-				gui.updateClipboardRows(true)
-				gui.focusClipboardItemByIndex(0)
-			})
+			gui.updateClipboardRows(false)
+			gui.focusClipboardItemByIndex(0)
 			gui.searchBarControl("hide")
 			return
 		}
 		database.searchFilter = gui.searchEntry.Text()
-		glib.IdleAdd(func() {
-			gui.updateClipboardRows(true)
-		})
+		gui.updateClipboardRows(false)
 	})
 	gui.searchBar.ConnectEntry(gui.searchEntry)
 	gui.searchToggleButton.ConnectToggled(func() {
@@ -509,11 +497,9 @@ func (gui *GUI) setupActionRunOnStartup(gtkApp *gtk.Application) {
 	})
 	gtkApp.AddAction(actionRunOnStartup)
 	if !hasStartupEntry {
-		glib.IdleAdd(func() {
-			glib.TimeoutAdd(1000, func() bool {
-				gui.showAddToStartupToast()
-				return false
-			})
+		glib.TimeoutAdd(1000, func() bool {
+			gui.showAddToStartupToast()
+			return false
 		})
 	}
 }
