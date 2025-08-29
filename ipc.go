@@ -46,7 +46,7 @@ func (ipc *IPC) listen() {
 		}
 		glib.IdleAdd(func() {
 			gui.updateClipboardRows(true)
-			gui.focusFirstClipboardListItem()
+			gui.focusClipboardItemByIndex(0)
 		})
 		conn.Close()
 	}

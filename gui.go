@@ -65,7 +65,7 @@ func (gui *GUI) activate(gtkApp *gtk.Application) {
 	gui.setupCSS()
 	glib.IdleAdd(func() {
 		gui.updateClipboardRows(true)
-		gui.focusFirstClipboardListItem()
+		gui.focusClipboardItemByIndex(0)
 	})
 	gui.setupEvents(gtkApp)
 	gui.setupShortcutsAction(gtkApp)
@@ -266,7 +266,7 @@ func (gui *GUI) setupClipBoardListEvents(gtkApp *gtk.Application) {
 				clipboard.copy(selectedRow.Name())
 				glib.IdleAdd(func() {
 					gui.updateClipboardRows(true)
-					gui.focusFirstClipboardListItem()
+					gui.focusClipboardItemByIndex(0)
 				})
 				return true
 			}
@@ -274,11 +274,12 @@ func (gui *GUI) setupClipBoardListEvents(gtkApp *gtk.Application) {
 
 		if keyval == gdk.KEY_Delete {
 			selectedRow := gui.clipboardItemsList.SelectedRow()
+			selectedRowIndex := selectedRow.Index()
 			if selectedRow != nil {
 				clipboard.removeFromDatabase(selectedRow.Name())
 				glib.IdleAdd(func() {
 					gui.updateClipboardRows(true)
-					gui.focusFirstClipboardListItem()
+					gui.focusClipboardItemByIndex(selectedRowIndex)
 				})
 				return true
 			}
@@ -306,7 +307,7 @@ func (gui *GUI) setupClipBoardListEvents(gtkApp *gtk.Application) {
 				clipboard.copy(selectedRow.Name())
 				glib.IdleAdd(func() {
 					gui.updateClipboardRows(true)
-					gui.focusFirstClipboardListItem()
+					gui.focusClipboardItemByIndex(0)
 				})
 			}
 		}
@@ -387,7 +388,7 @@ func (gui *GUI) searchBarControl(action string) interface{} {
 		if currentState {
 			gui.searchToggleButton.SetActive(false)
 			gui.searchBar.SetObjectProperty("search-mode-enabled", false)
-			gui.focusFirstClipboardListItem()
+			gui.focusClipboardItemByIndex(0)
 		}
 	case "toggle":
 		if currentState {
@@ -407,7 +408,7 @@ func (gui *GUI) setupSearchBarEvents() {
 			database.searchFilter = ""
 			glib.IdleAdd(func() {
 				gui.updateClipboardRows(true)
-				gui.focusFirstClipboardListItem()
+				gui.focusClipboardItemByIndex(0)
 			})
 			gui.searchBarControl("hide")
 			return
@@ -422,7 +423,7 @@ func (gui *GUI) setupSearchBarEvents() {
 		gui.searchBarControl("toggle")
 	})
 	gui.searchEntry.ConnectActivate(func() {
-		gui.focusFirstClipboardListItem()
+		gui.focusClipboardItemByIndex(0)
 	})
 	searchEntryKeyController := gtk.NewEventControllerKey()
 	searchEntryKeyController.ConnectKeyPressed(func(keyval, keycode uint, state gdk.ModifierType) bool {
@@ -431,7 +432,7 @@ func (gui *GUI) setupSearchBarEvents() {
 			return true
 		}
 		if keyval == gdk.KEY_Down || keyval == gdk.KEY_KP_Down || keyval == gdk.KEY_Tab || keyval == gdk.KEY_KP_Tab {
-			gui.focusFirstClipboardListItem()
+			gui.focusClipboardItemByIndex(0)
 			return true
 		}
 		return false
@@ -440,14 +441,13 @@ func (gui *GUI) setupSearchBarEvents() {
 	gui.searchEntry.AddController(searchEntryKeyController)
 }
 
-func (gui *GUI) focusFirstClipboardListItem() {
-	if gui.clipboardItemsList.RowAtIndex(0) == nil {
+func (gui *GUI) focusClipboardItemByIndex(index int) {
+	if gui.clipboardItemsList.RowAtIndex(index) == nil {
 		return
 	}
-	firstItem := gui.clipboardItemsList.RowAtIndex(0)
-	gui.clipboardItemsList.SelectRow(firstItem)
-	gtk.ListBoxRow(*firstItem).Cast().(*gtk.ListBoxRow).GrabFocus()
-
+	item := gui.clipboardItemsList.RowAtIndex(index)
+	gui.clipboardItemsList.SelectRow(item)
+	gtk.ListBoxRow(*item).Cast().(*gtk.ListBoxRow).GrabFocus()
 }
 
 func (gui *GUI) setupStyleSupport() {
