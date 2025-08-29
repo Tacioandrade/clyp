@@ -70,25 +70,10 @@ The watcher is a minimal headless Gtk application. It monitors the clipboard and
 - **GUI Framework**: GTK4 via gotk4 bindings
 - **Database**: SQLite3 for persistent storage
 - **Platform**: Linux (Wayland/X11)
-
-### Data Storage
-Clipboard data is stored in `~/.local/share/bio.murat.clyp/clyp.db` using SQLite3. The database includes:
-- Automatic timestamps for each clipboard entry
-- Content type detection (text/image)
-- Duplicate prevention
-- Efficient indexing for fast searches
-
-## Configuration
-
-Clyp follows XDG Base Directory specifications:
 - **Data Directory**: `~/.local/share/bio.murat.clyp/`
-- **Database File**: `~/.local/share/bio.murat.clyp/clyp.db`
+- **SQLite3 Database File**: `~/.local/share/bio.murat.clyp/clyp.db`
 
-## Development
-
-### Building from Source
-
-#### Ubuntu 
+## Building from Source (Ubuntu)
 
 ```bash
 git clone https://github.com/murat-cileli/clyp.git
@@ -106,24 +91,20 @@ sudo apt install -y \
   libgtk-4-dev
 go build .
 ```
-### Go Dependencies
-- `github.com/diamondburned/gotk4/pkg` - GTK4 bindings for Go
-- `github.com/mattn/go-sqlite3` - SQLite3 driver for Go
-
-### Project Structure
-```
-├── app.go          # Main application logic and UI setup
-├── clipboard.go    # Clipboard monitoring and operations
-├── database.go     # SQLite database operations
-├── main.go         # Application entry point
-├── resources/      # UI definitions and CSS styles
-├── data/           # Desktop files and metadata
-└── vendor/         # Vendored dependencies
-```
 
 ### TODO
 - Add import/export.
 - Add database encryption.
+
+### Contributing
+
+Contributions are welcome! Please **open an Issue first** before submitting any code changes. Unsolicited Pull Requests will not be accepted. This process helps us discuss your ideas and ensure they align with the project goals before implementation.
+
+### Contributors
+
+<a href="https://github.com/murat-cileli/clyp/graphs/contributors" target="_blank">
+  <img src="https://contrib.rocks/image?repo=murat-cileli/clyp" />
+</a>
 
 ### CREDITS
 - [gotk4](https://github.com/diamondburned/gotk4)
