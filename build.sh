@@ -19,7 +19,8 @@ case $1 in
   package-snapshot)
     goreleaser release --snapshot --clean \
       && nfpm pkg --packager deb --target dist/ \
-      && nfpm pkg --packager archlinux --target dist/
+      && nfpm pkg --packager archlinux --target dist/ \
+      && nfpm pkg --packager rpm --target dist/
     ;;
   release)
     # $2 old version
@@ -36,6 +37,7 @@ case $1 in
       && goreleaser build --clean \
       && nfpm pkg --packager deb --target dist/ \
       && nfpm pkg --packager archlinux --target dist/ \
+      && nfpm pkg --packager rpm --target dist/ \
       && GITHUB_TOKEN=$4 goreleaser release --clean
     ;;
 esac

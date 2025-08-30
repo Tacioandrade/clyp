@@ -24,3 +24,4 @@ release:
   extra_files:
     - glob: ./dist/*.deb
     - glob: ./dist/*.pkg.tar.zst
+    - glob: ./dist/*.rpm

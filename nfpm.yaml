@@ -33,5 +33,8 @@ overrides:
   archlinux:
     depends:
       - gtk4
+  rpm:
+    depends:
+      - gtk4 >= 4.14.0-0
 archlinux:
   packager: "Murat Çileli <murat.cileli@gmail.com>"
