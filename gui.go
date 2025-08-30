@@ -58,6 +58,7 @@ func (gui *GUI) activate(gtkApp *gtk.Application) {
 	gui.setupShortcutsAction(gtkApp)
 	gui.setupAboutAction(gtkApp)
 	gui.setupActionRunOnStartup(gtkApp)
+	gui.setupCloseOnCopy(gtkApp)
 	gui.setupStyleSupport()
 	gui.window.SetIconName(app.id)
 	// Always update startup entry.
@@ -263,7 +264,11 @@ func (gui *GUI) setupClipBoardListEvents(gtkApp *gtk.Application) {
 			selectedRow := gui.clipboardItemsList.SelectedRow()
 			if selectedRow != nil {
 				gui.searchBarControl("hide")
-				clipboard.copy(selectedRow.Name())
+				clipboard.copy(selectedRow.Name(), gtkApp)
+				if config.CloseOnCopy {
+					gui.shutdown(gtkApp)
+					return true
+				}
 				gui.updateClipboardRows(true)
 				gui.focusClipboardItemByIndex(0)
 				return true
@@ -300,7 +305,11 @@ func (gui *GUI) setupClipBoardListEvents(gtkApp *gtk.Application) {
 			selectedRow := gui.clipboardItemsList.SelectedRow()
 			if selectedRow != nil {
 				gui.searchBarControl("hide")
-				clipboard.copy(selectedRow.Name())
+				clipboard.copy(selectedRow.Name(), gtkApp)
+				if config.CloseOnCopy {
+					gui.shutdown(gtkApp)
+					return
+				}
 				gui.updateClipboardRows(true)
 				gui.focusClipboardItemByIndex(0)
 			}
@@ -483,8 +492,8 @@ func (gui *GUI) showAboutDialog(parent *gtk.ApplicationWindow) {
 	aboutDialog.SetVersion(app.version)
 	aboutDialog.SetProgramName(app.name)
 	aboutDialog.SetComments("Clipboard manager.")
-	aboutDialog.SetWebsite("https://github.com/murat-cileli/clyp")
-	aboutDialog.SetWebsiteLabel("https://github.com/murat-cileli/clyp")
+	aboutDialog.SetWebsite(app.helpURL)
+	aboutDialog.SetWebsiteLabel(app.helpURL)
 	aboutDialog.SetVisible(true)
 }
 
@@ -502,6 +511,23 @@ func (gui *GUI) setupActionRunOnStartup(gtkApp *gtk.Application) {
 			return false
 		})
 	}
+}
+
+func (gui *GUI) setupCloseOnCopy(gtkApp *gtk.Application) {
+	initialState := glib.NewVariantBoolean(config.CloseOnCopy)
+	actionCloseOnCopy := gio.NewSimpleActionStateful("close_on_copy", nil, initialState)
+	actionCloseOnCopy.ConnectActivate(func(parameter *glib.Variant) {
+		gui.handleCloseOnCopy(actionCloseOnCopy)
+	})
+	gtkApp.AddAction(actionCloseOnCopy)
+}
+
+func (gui *GUI) handleCloseOnCopy(action *gio.SimpleAction) {
+	currentState := action.State().Boolean()
+	newState := glib.NewVariantBoolean(!currentState)
+	action.SetState(newState)
+	config.CloseOnCopy = newState.Boolean()
+	config.save()
 }
 
 func (gui *GUI) handleRunOnStartup(action *gio.SimpleAction) {

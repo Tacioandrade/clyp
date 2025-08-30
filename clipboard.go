@@ -10,6 +10,7 @@ import (
 	"github.com/diamondburned/gotk4/pkg/gdk/v4"
 	"github.com/diamondburned/gotk4/pkg/gio/v2"
 	"github.com/diamondburned/gotk4/pkg/glib/v2"
+	"github.com/diamondburned/gotk4/pkg/gtk/v4"
 )
 
 type Clipboard struct {
@@ -177,7 +178,7 @@ func (clipboard *Clipboard) saveToDatabase(content string, itemType byte) {
 	ipc.notify()
 }
 
-func (clipboard *Clipboard) copy(id string) {
+func (clipboard *Clipboard) copy(id string, gtkApp *gtk.Application) {
 	if id == "" {
 		return
 	}
