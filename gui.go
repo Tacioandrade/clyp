@@ -536,13 +536,50 @@ func (gui *GUI) showSettingsDialog(parent *gtk.ApplicationWindow) {
 		config.save()
 	})
 
+	clearClipboardButton := gtk.NewButtonWithLabel("Clear Clipboard")
+	clearClipboardButton.AddCSSClass("destructive-action")
+	clearClipboardButton.ConnectClicked(func() {
+		gui.showClearClipboardDialog(settingsDialog)
+	})
+
 	contentArea.Append(runOnStartupCheckButton)
 	contentArea.Append(closeOnCopyCheckButton)
 	contentArea.Append(focusWindowCheckButton)
+	contentArea.Append(clearClipboardButton)
 	settingsDialog.ConnectResponse(func(responseId int) {
 		settingsDialog.Close()
 	})
 	settingsDialog.SetVisible(true)
+}
+
+func (gui *GUI) showClearClipboardDialog(parent *gtk.Dialog) {
+	confirmDialog := gtk.NewDialog()
+	confirmDialog.SetTransientFor(&parent.Window)
+	confirmDialog.SetModal(true)
+	confirmDialog.SetTitle("Clear Clipboard")
+	confirmDialog.AddButton("Cancel", int(gtk.ResponseCancel))
+	confirmDialog.AddButton("Clear", int(gtk.ResponseAccept))
+	confirmDialog.SetDefaultResponse(int(gtk.ResponseCancel))
+
+	contentArea := confirmDialog.ContentArea()
+	contentArea.SetMarginTop(16)
+	contentArea.SetMarginBottom(16)
+	contentArea.SetMarginStart(16)
+	contentArea.SetMarginEnd(16)
+
+	messageLabel := gtk.NewLabel("Clear all saved clipboard items?")
+	messageLabel.SetWrap(true)
+	messageLabel.SetXAlign(0)
+	contentArea.Append(messageLabel)
+
+	confirmDialog.ConnectResponse(func(responseId int) {
+		if responseId == int(gtk.ResponseAccept) {
+			clipboard.removeAllFromDatabase()
+			gui.updateClipboardRows(true)
+		}
+		confirmDialog.Close()
+	})
+	confirmDialog.SetVisible(true)
 }
 
 func (gui *GUI) setupAboutAction(gtkApp *gtk.Application) {
