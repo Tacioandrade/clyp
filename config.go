@@ -7,9 +7,10 @@ import (
 )
 
 type Config struct {
-	Comment     string `json:"comment"`
-	CloseOnCopy bool   `json:"close_on_copy"`
-	file        string `json:"-"`
+	Comment           string `json:"comment"`
+	CloseOnCopy       bool   `json:"close_on_copy"`
+	FocusWindowOnOpen bool   `json:"focus_window_on_open"`
+	file              string `json:"-"`
 }
 
 func (config *Config) init() {
@@ -30,12 +31,14 @@ func (config *Config) isExist() bool {
 func (config *Config) setDefaults() {
 	config.Comment = "Documentation: " + app.helpURL
 	config.CloseOnCopy = false
+	config.FocusWindowOnOpen = false
 }
 
 func (config *Config) save() {
 	configData := &Config{
-		Comment:     config.Comment,
-		CloseOnCopy: config.CloseOnCopy,
+		Comment:           config.Comment,
+		CloseOnCopy:       config.CloseOnCopy,
+		FocusWindowOnOpen: config.FocusWindowOnOpen,
 	}
 	configJSON, err := json.MarshalIndent(configData, "", "  ")
 	if err != nil {

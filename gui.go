@@ -30,6 +30,8 @@ type GUI struct {
 	searchBar          *gtk.SearchBar
 	searchToggleButton *gtk.ToggleButton
 	window             *gtk.ApplicationWindow
+	runOnStartupAction *gio.SimpleAction
+	closeOnCopyAction  *gio.SimpleAction
 }
 
 func (gui *GUI) init() {
@@ -52,10 +54,14 @@ func (gui *GUI) activate(gtkApp *gtk.Application) {
 	gui.window.SetApplication(gtkApp)
 	gui.setupCSS()
 	gui.updateClipboardRows(true)
-	gui.focusClipboardItemByIndex(0)
 	gui.window.SetVisible(true)
+	if config.FocusWindowOnOpen {
+		gui.window.Present()
+		gui.focusClipboardItemByIndex(0)
+	}
 	gui.setupEvents(gtkApp)
 	gui.setupShortcutsAction(gtkApp)
+	gui.setupSettingsAction(gtkApp)
 	gui.setupAboutAction(gtkApp)
 	gui.setupActionRunOnStartup(gtkApp)
 	gui.setupCloseOnCopy(gtkApp)
@@ -476,6 +482,69 @@ func (gui *GUI) showShortcutsWindow(parent *gtk.ApplicationWindow) {
 	shortcutsWindow.SetVisible(true)
 }
 
+func (gui *GUI) setupSettingsAction(gtkApp *gtk.Application) {
+	settingsAction := gio.NewSimpleAction("settings", nil)
+	settingsAction.ConnectActivate(func(parameter *glib.Variant) {
+		gui.showSettingsDialog(gui.window)
+	})
+	gtkApp.AddAction(settingsAction)
+}
+
+func (gui *GUI) showSettingsDialog(parent *gtk.ApplicationWindow) {
+	settingsDialog := gtk.NewDialog()
+	settingsDialog.SetTransientFor(&parent.Window)
+	settingsDialog.SetModal(true)
+	settingsDialog.SetTitle("Settings")
+	settingsDialog.SetDefaultSize(420, 120)
+	settingsDialog.AddButton("Close", int(gtk.ResponseClose))
+
+	contentArea := settingsDialog.ContentArea()
+	contentArea.SetMarginTop(16)
+	contentArea.SetMarginBottom(16)
+	contentArea.SetMarginStart(16)
+	contentArea.SetMarginEnd(16)
+	contentArea.SetSpacing(8)
+
+	runOnStartupCheckButton := gtk.NewCheckButtonWithLabel("Run on Startup")
+	runOnStartupCheckButton.SetActive(gui.startupEntryControl("check"))
+	runOnStartupCheckButton.ConnectToggled(func() {
+		runOnStartup := runOnStartupCheckButton.Active()
+		if runOnStartup {
+			gui.startupEntryControl("add")
+		} else {
+			gui.startupEntryControl("remove")
+		}
+		if gui.runOnStartupAction != nil {
+			gui.runOnStartupAction.SetState(glib.NewVariantBoolean(runOnStartup))
+		}
+	})
+
+	closeOnCopyCheckButton := gtk.NewCheckButtonWithLabel("Close on Copy")
+	closeOnCopyCheckButton.SetActive(config.CloseOnCopy)
+	closeOnCopyCheckButton.ConnectToggled(func() {
+		config.CloseOnCopy = closeOnCopyCheckButton.Active()
+		config.save()
+		if gui.closeOnCopyAction != nil {
+			gui.closeOnCopyAction.SetState(glib.NewVariantBoolean(config.CloseOnCopy))
+		}
+	})
+
+	focusWindowCheckButton := gtk.NewCheckButtonWithLabel("Focus the application window when opening it")
+	focusWindowCheckButton.SetActive(config.FocusWindowOnOpen)
+	focusWindowCheckButton.ConnectToggled(func() {
+		config.FocusWindowOnOpen = focusWindowCheckButton.Active()
+		config.save()
+	})
+
+	contentArea.Append(runOnStartupCheckButton)
+	contentArea.Append(closeOnCopyCheckButton)
+	contentArea.Append(focusWindowCheckButton)
+	settingsDialog.ConnectResponse(func(responseId int) {
+		settingsDialog.Close()
+	})
+	settingsDialog.SetVisible(true)
+}
+
 func (gui *GUI) setupAboutAction(gtkApp *gtk.Application) {
 	aboutAction := gio.NewSimpleAction("about", nil)
 	aboutAction.ConnectActivate(func(parameter *glib.Variant) {
@@ -504,6 +573,7 @@ func (gui *GUI) setupActionRunOnStartup(gtkApp *gtk.Application) {
 	actionRunOnStartup.ConnectActivate(func(parameter *glib.Variant) {
 		gui.handleRunOnStartup(actionRunOnStartup)
 	})
+	gui.runOnStartupAction = actionRunOnStartup
 	gtkApp.AddAction(actionRunOnStartup)
 	if !hasStartupEntry {
 		glib.TimeoutAdd(1000, func() bool {
@@ -519,6 +589,7 @@ func (gui *GUI) setupCloseOnCopy(gtkApp *gtk.Application) {
 	actionCloseOnCopy.ConnectActivate(func(parameter *glib.Variant) {
 		gui.handleCloseOnCopy(actionCloseOnCopy)
 	})
+	gui.closeOnCopyAction = actionCloseOnCopy
 	gtkApp.AddAction(actionCloseOnCopy)
 }
 
@@ -572,7 +643,7 @@ func (gui *GUI) showAddToStartupToast() {
 	toastBox.SetMarginEnd(20)
 	toastBox.AddCSSClass("toast")
 
-	label := gtk.NewLabel("Go the menu to add Clyp to the system startup.")
+	label := gtk.NewLabel("Go to Settings to add Clyp to the system startup.")
 	label.SetHAlign(gtk.AlignCenter)
 	toastBox.Append(label)
 
