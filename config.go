@@ -9,6 +9,7 @@ import (
 type Config struct {
 	Comment           string `json:"comment"`
 	CloseOnCopy       bool   `json:"close_on_copy"`
+	FocusWindowOnOpen bool   `json:"focus_window_on_open"`
 	MaxClipboardItems int    `json:"max_clipboard_items"`
 	file              string `json:"-"`
 }
@@ -31,6 +32,7 @@ func (config *Config) isExist() bool {
 func (config *Config) setDefaults() {
 	config.Comment = "Documentation: " + app.helpURL
 	config.CloseOnCopy = false
+	config.FocusWindowOnOpen = false
 	config.MaxClipboardItems = 500
 }
 
@@ -38,6 +40,7 @@ func (config *Config) save() {
 	configData := &Config{
 		Comment:           config.Comment,
 		CloseOnCopy:       config.CloseOnCopy,
+		FocusWindowOnOpen: config.FocusWindowOnOpen,
 		MaxClipboardItems: config.MaxClipboardItems,
 	}
 	configJSON, err := json.MarshalIndent(configData, "", "  ")
