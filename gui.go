@@ -56,6 +56,7 @@ func (gui *GUI) activate(gtkApp *gtk.Application) {
 	gui.window.SetVisible(true)
 	gui.setupEvents(gtkApp)
 	gui.setupShortcutsAction(gtkApp)
+	gui.setupSettingsAction(gtkApp)
 	gui.setupAboutAction(gtkApp)
 	gui.setupActionRunOnStartup(gtkApp)
 	gui.setupCloseOnCopy(gtkApp)
@@ -474,6 +475,54 @@ func (gui *GUI) showShortcutsWindow(parent *gtk.ApplicationWindow) {
 	shortcutsWindow.SetTransientFor(&parent.Window)
 	shortcutsWindow.SetModal(true)
 	shortcutsWindow.SetVisible(true)
+}
+
+func (gui *GUI) setupSettingsAction(gtkApp *gtk.Application) {
+	settingsAction := gio.NewSimpleAction("settings", nil)
+	settingsAction.ConnectActivate(func(parameter *glib.Variant) {
+		gui.showSettingsDialog(gui.window)
+	})
+	gtkApp.AddAction(settingsAction)
+}
+
+func (gui *GUI) showSettingsDialog(parent *gtk.ApplicationWindow) {
+	settingsDialog := gtk.NewDialog()
+	settingsDialog.SetTransientFor(&parent.Window)
+	settingsDialog.SetModal(true)
+	settingsDialog.SetTitle("Settings")
+	settingsDialog.SetDefaultSize(420, 120)
+	settingsDialog.AddButton("Close", int(gtk.ResponseClose))
+
+	contentArea := settingsDialog.ContentArea()
+	contentArea.SetMarginTop(16)
+	contentArea.SetMarginBottom(16)
+	contentArea.SetMarginStart(16)
+	contentArea.SetMarginEnd(16)
+	contentArea.SetSpacing(8)
+
+	maxItemsBox := gtk.NewBox(gtk.OrientationHorizontal, 12)
+	maxItemsLabel := gtk.NewLabel("Maximum saved clipboard items")
+	maxItemsLabel.SetXAlign(0)
+	maxItemsLabel.SetHExpand(true)
+
+	maxItemsSpinButton := gtk.NewSpinButtonWithRange(1, 100000, 1)
+	maxItemsSpinButton.SetValue(float64(config.MaxClipboardItems))
+	maxItemsSpinButton.SetNumeric(true)
+	maxItemsSpinButton.ConnectValueChanged(func() {
+		config.MaxClipboardItems = maxItemsSpinButton.ValueAsInt()
+		config.save()
+		clipboard.enforceMaxItems()
+		gui.updateClipboardRows(true)
+	})
+
+	maxItemsBox.Append(maxItemsLabel)
+	maxItemsBox.Append(maxItemsSpinButton)
+	contentArea.Append(maxItemsBox)
+
+	settingsDialog.ConnectResponse(func(responseId int) {
+		settingsDialog.Close()
+	})
+	settingsDialog.SetVisible(true)
 }
 
 func (gui *GUI) setupAboutAction(gtkApp *gtk.Application) {
