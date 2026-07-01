@@ -536,15 +536,34 @@ func (gui *GUI) showSettingsDialog(parent *gtk.ApplicationWindow) {
 		config.save()
 	})
 
+	maxItemsBox := gtk.NewBox(gtk.OrientationHorizontal, 12)
+	maxItemsLabel := gtk.NewLabel("Maximum saved clipboard items")
+	maxItemsLabel.SetXAlign(0)
+	maxItemsLabel.SetHExpand(true)
+
+	maxItemsSpinButton := gtk.NewSpinButtonWithRange(1, 100000, 1)
+	maxItemsSpinButton.SetValue(float64(config.MaxClipboardItems))
+	maxItemsSpinButton.SetNumeric(true)
+	maxItemsSpinButton.ConnectValueChanged(func() {
+		config.MaxClipboardItems = maxItemsSpinButton.ValueAsInt()
+		config.save()
+		clipboard.enforceMaxItems()
+		gui.updateClipboardRows(true)
+	})
+
 	clearClipboardButton := gtk.NewButtonWithLabel("Clear Clipboard")
 	clearClipboardButton.AddCSSClass("destructive-action")
 	clearClipboardButton.ConnectClicked(func() {
 		gui.showClearClipboardDialog(settingsDialog)
 	})
 
+	maxItemsBox.Append(maxItemsLabel)
+	maxItemsBox.Append(maxItemsSpinButton)
+
 	contentArea.Append(runOnStartupCheckButton)
 	contentArea.Append(closeOnCopyCheckButton)
 	contentArea.Append(focusWindowCheckButton)
+	contentArea.Append(maxItemsBox)
 	contentArea.Append(clearClipboardButton)
 	settingsDialog.ConnectResponse(func(responseId int) {
 		settingsDialog.Close()
