@@ -7,6 +7,7 @@ import (
 	"log"
 	"strings"
 
+	coreglib "github.com/diamondburned/gotk4/pkg/core/glib"
 	"github.com/diamondburned/gotk4/pkg/gdk/v4"
 	"github.com/diamondburned/gotk4/pkg/gio/v2"
 	"github.com/diamondburned/gotk4/pkg/glib/v2"
@@ -115,6 +116,7 @@ func (clipboard *Clipboard) readImageContent() {
 			log.Printf("Failed to read texture from clipboard: %v", err)
 			return
 		}
+		defer coreglib.Destroy(texture)
 
 		imageData := clipboard.textureToBase64(texture)
 
