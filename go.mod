@@ -3,7 +3,7 @@ module github.com/murat-cileli/clyp
 go 1.25.0
 
 require (
-	github.com/diamondburned/gotk4/pkg v0.3.1 // lifecycle fix from 4ea0229 backported in vendor for GLib 2.80
+	github.com/diamondburned/gotk4/pkg v0.3.1
 	github.com/mattn/go-sqlite3 v1.14.32
 )
 

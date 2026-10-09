@@ -25,7 +25,7 @@ type Application struct {
 func (app *Application) init() {
 	app.id = "bio.murat.clyp"
 	app.name = "Clyp"
-	app.version = "0.9.6"
+	app.version = "0.9.6-Tacio4"
 	app.helpURL = "https://github.com/murat-cileli/clyp"
 	app.setupDataDir()
 	app.setupConfigDir()

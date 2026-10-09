@@ -38,6 +38,7 @@ type GUI struct {
 	closeOnCopyAction  *gio.SimpleAction
 	loadedItems        int
 	loadingItems       bool
+	searchUpdateSource glib.SourceHandle
 }
 
 func (gui *GUI) init() {
@@ -91,16 +92,20 @@ func (gui *GUI) shutdown(gtkApp *gtk.Application) {
 }
 
 func (gui *GUI) startWatcher() {
-	cmd := "clyp"
+	cmd := "clyp-watcher"
 	if os.Getenv("RUN_ENV") == "dev" {
-		cmd = "./clyp"
+		cmd = "./clyp-watcher"
 	}
-	watcher := exec.Command(cmd, " --watch")
-	watcher.Env = os.Environ()
-	watcher.Env = append(watcher.Env, "GDK_BACKEND=x11")
+	watcher := exec.Command(cmd)
 	if err := watcher.Start(); err != nil {
 		log.Printf("Failed to start watcher: %v", err)
+		return
 	}
+	go func() {
+		if err := watcher.Wait(); err != nil {
+			log.Printf("Watcher exited: %v", err)
+		}
+	}()
 }
 
 func (gui *GUI) setupCSS() {
@@ -138,9 +143,7 @@ func (gui *GUI) loadClipboardRows(updateItemCount bool) {
 	}
 
 	gui.loadingItems = true
-	defer func() {
-		gui.loadingItems = false
-	}()
+	defer func() { gui.loadingItems = false }()
 
 	items, err := clipboard.items(updateItemCount, clipboardItemsPageSize, gui.loadedItems)
 	if err != nil {
@@ -156,18 +159,86 @@ func (gui *GUI) loadClipboardRows(updateItemCount bool) {
 	}
 
 	for _, item := range items {
-		switch item.itemType {
-		case 1:
-			gui.addTextRow(item)
-		case 2:
-			gui.addImageRow(item)
-		default:
-			log.Printf("Unknown item type: %d", item.itemType)
+		row := gui.clipboardRow(item)
+		if row != nil {
+			gui.clipboardItemsList.Append(row)
 		}
 	}
 }
 
-func (gui *GUI) addTextRow(item ClipboardItem) {
+func (gui *GUI) handleClipboardChange() {
+	items, err := clipboard.items(true, 1, 0)
+	if err != nil {
+		log.Printf("Error getting latest clipboard item: %v", err)
+		return
+	}
+	if len(items) == 0 {
+		gui.updateTitle("0", strconv.Itoa(clipboard.itemCount))
+		return
+	}
+
+	latest := items[0]
+	latestID := strconv.Itoa(latest.id)
+	for index := 0; index < gui.loadedItems; index++ {
+		row := gui.clipboardItemsList.RowAtIndex(index)
+		if row == nil {
+			break
+		}
+		if row.Name() == latestID {
+			if index > 0 {
+				gui.clipboardItemsList.Remove(row)
+				gui.clipboardItemsList.Prepend(row)
+			}
+			gui.updateTitle(strconv.Itoa(gui.loadedItems), strconv.Itoa(clipboard.itemCount))
+			return
+		}
+	}
+
+	row := gui.clipboardRow(latest)
+	if row == nil {
+		return
+	}
+	previouslyLoaded := gui.loadedItems
+	gui.clipboardItemsList.Prepend(row)
+	gui.loadedItems++
+
+	if previouslyLoaded >= clipboardItemsPageSize {
+		lastRow := gui.clipboardItemsList.RowAtIndex(gui.loadedItems - 1)
+		if lastRow != nil {
+			gui.clipboardItemsList.Remove(lastRow)
+			gui.loadedItems--
+		}
+	}
+	gui.updateTitle(strconv.Itoa(gui.loadedItems), strconv.Itoa(clipboard.itemCount))
+}
+
+func (gui *GUI) clipboardRow(item ClipboardItem) *gtk.ListBoxRow {
+	switch item.itemType {
+	case 1:
+		return gui.textRow(item)
+	case 2:
+		return gui.imageRow(item)
+	default:
+		log.Printf("Unknown item type: %d", item.itemType)
+		return nil
+	}
+}
+
+func (gui *GUI) removeClipboardRow(row *gtk.ListBoxRow) int {
+	index := row.Index()
+	gui.clipboardItemsList.Remove(row)
+	if gui.loadedItems > 0 {
+		gui.loadedItems--
+	}
+	clipboard.count()
+	gui.updateTitle(strconv.Itoa(gui.loadedItems), strconv.Itoa(clipboard.itemCount))
+	if index >= gui.loadedItems {
+		index = gui.loadedItems - 1
+	}
+	return index
+}
+
+func (gui *GUI) textRow(item ClipboardItem) *gtk.ListBoxRow {
 	box := gtk.NewBox(gtk.OrientationVertical, 6)
 	box.SetMarginTop(12)
 	box.SetMarginBottom(12)
@@ -198,10 +269,10 @@ func (gui *GUI) addTextRow(item ClipboardItem) {
 	row.AddCSSClass("item-row")
 	row.SetChild(box)
 
-	gui.clipboardItemsList.Append(row)
+	return row
 }
 
-func (gui *GUI) addImageRow(item ClipboardItem) {
+func (gui *GUI) imageRow(item ClipboardItem) *gtk.ListBoxRow {
 	box := gtk.NewBox(gtk.OrientationVertical, 0)
 	box.SetMarginTop(12)
 	box.SetMarginBottom(12)
@@ -238,7 +309,7 @@ func (gui *GUI) addImageRow(item ClipboardItem) {
 	row.SetName(strconv.Itoa(item.id))
 	row.SetChild(box)
 
-	gui.clipboardItemsList.Append(row)
+	return row
 }
 
 func (gui *GUI) loadImageFromBase64(base64Data string) *gdk.Texture {
@@ -303,7 +374,7 @@ func (gui *GUI) setupClipBoardListEvents(gtkApp *gtk.Application) {
 					gui.shutdown(gtkApp)
 					return true
 				}
-				gui.updateClipboardRows(true)
+				gui.handleClipboardChange()
 				gui.focusClipboardItemByIndex(0)
 				return true
 			}
@@ -312,9 +383,8 @@ func (gui *GUI) setupClipBoardListEvents(gtkApp *gtk.Application) {
 		if keyval == gdk.KEY_Delete {
 			selectedRow := gui.clipboardItemsList.SelectedRow()
 			if selectedRow != nil {
-				selectedRowIndex := selectedRow.Index()
 				clipboard.removeFromDatabase(selectedRow.Name())
-				gui.updateClipboardRows(true)
+				selectedRowIndex := gui.removeClipboardRow(selectedRow)
 				gui.focusClipboardItemByIndex(selectedRowIndex)
 				return true
 			}
@@ -344,7 +414,7 @@ func (gui *GUI) setupClipBoardListEvents(gtkApp *gtk.Application) {
 					gui.shutdown(gtkApp)
 					return
 				}
-				gui.updateClipboardRows(true)
+				gui.handleClipboardChange()
 				gui.focusClipboardItemByIndex(0)
 			}
 		}
@@ -454,15 +524,20 @@ func (gui *GUI) searchBarControl(action string) interface{} {
 
 func (gui *GUI) setupSearchBarEvents() {
 	gui.searchEntry.ConnectSearchChanged(func() {
-		if gui.searchEntry.Text() == "" {
-			database.searchFilter = ""
+		if gui.searchUpdateSource != 0 {
+			glib.SourceRemove(gui.searchUpdateSource)
+		}
+		searchText := gui.searchEntry.Text()
+		gui.searchUpdateSource = glib.TimeoutAdd(200, func() bool {
+			gui.searchUpdateSource = 0
+			database.searchFilter = searchText
 			gui.updateClipboardRows(true)
 			gui.focusClipboardItemByIndex(0)
-			gui.searchBarControl("hide")
-			return
-		}
-		database.searchFilter = gui.searchEntry.Text()
-		gui.updateClipboardRows(true)
+			if searchText == "" {
+				gui.searchBarControl("hide")
+			}
+			return false
+		})
 	})
 	gui.searchBar.ConnectEntry(gui.searchEntry)
 	gui.searchToggleButton.ConnectToggled(func() {
